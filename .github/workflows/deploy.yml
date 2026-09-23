@@ -1,0 +1,32 @@
+name: Tidewater CI/CD
+on:
+  push: {branches: [main]}
+  workflow_dispatch:
+permissions: {contents: read}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install -r app/requirements.txt
+      - run: ruff check app
+      - run: pytest app/tests -q
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs: {image: ${{ steps.meta.outputs.image }} }
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        run: echo "image=settle-api:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - run: docker build -t settle-api:${GITHUB_SHA} -f app/Dockerfile app/
+      - uses: aquasecurity/trivy-action@0.28.0
+        with: {image-ref: 'settle-api:${{ github.sha }}',severity: 'CRITICAL,HIGH',exit-code: '1'}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "Deploy immutable artifact ${{ needs.build.outputs.image }}; local k3d demonstration uses scripts/pipeline.sh."

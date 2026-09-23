@@ -1,0 +1,18 @@
+# Intentional inherited defects. Do not use as production config.
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: settle-api,namespace: settle}
+spec:
+  replicas: 2
+  strategy: {type: RollingUpdate,rollingUpdate: {maxUnavailable: 1,maxSurge: 1}}
+  selector: {matchLabels: {app: settle-api}}
+  template:
+    metadata: {labels: {app: settle-api}}
+    spec:
+      containers:
+      - name: api
+        image: settle-api:1.8.0
+        env: [{name: DATABASE_URL,value: "postgresql://settle:password@postgres:5432/settle"}]
+        # Dependency-sensitive liveness can restart pods when DB is slow.
+        livenessProbe: {httpGet: {path: /health/db,port: 8000}}
+        # no resources, unsafe rollout capacity

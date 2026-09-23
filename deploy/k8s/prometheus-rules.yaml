@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata: {name: settle-alerts,namespace: monitoring}
+spec:
+  groups:
+  - name: settle
+    rules:
+    - alert: SettleApiHighErrorRate
+      expr: sum(rate(settle_api_requests_total{status=~"5.."}[5m])) / clamp_min(sum(rate(settle_api_requests_total[5m])),1) > 0.05
+      for: 5m
+      annotations: {summary: 'settle API 5xx rate >5%',runbook: 'docs/RUNBOOK.md'}
+    - alert: SettleApiHighLatency
+      expr: histogram_quantile(0.95,sum by(le)(rate(settle_api_request_duration_seconds_bucket[5m]))) > 2
+      for: 5m
+      annotations: {summary: 'settle API p95 >2s',runbook: 'docs/RUNBOOK.md'}
+    - alert: SettleWorkerQueueBacklog
+      expr: settle_worker_queue_depth > 100
+      for: 5m
+      annotations: {summary: 'worker queue >100',runbook: 'docs/RUNBOOK.md'}
+    - alert: SettlePostgresConnectionPressure
+      expr: pg_stat_database_numbackends{datname="settle"} > 80
+      for: 5m
+      annotations: {summary: 'Postgres connections >80',runbook: 'docs/RUNBOOK.md'}
+    - alert: SettleNodeDiskPressure
+      expr: 100*(1-node_filesystem_avail_bytes{mountpoint="/"}/node_filesystem_size_bytes{mountpoint="/"}) > 80
+      for: 5m
+      annotations: {summary: 'node disk >80%',runbook: 'docs/RUNBOOK.md'}

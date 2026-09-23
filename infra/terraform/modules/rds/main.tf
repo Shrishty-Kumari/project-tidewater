@@ -1,0 +1,3 @@
+variable "name" {type=string} variable "environment" {type=string} variable "subnet_ids" {type=list(string)} variable "vpc_id" {type=string}
+resource "aws_db_subnet_group" "this" {name="${var.name}-db" subnet_ids=var.subnet_ids}
+resource "aws_db_instance" "this" {identifier="${var.name}-postgres" engine="postgres" engine_version="15" instance_class="db.t4g.micro" allocated_storage=20 max_allocated_storage=50 db_name="settle" username="settle" manage_master_user_password=true storage_encrypted=true publicly_accessible=false multi_az=var.environment=="prod" skip_final_snapshot=true db_subnet_group_name=aws_db_subnet_group.this.name}

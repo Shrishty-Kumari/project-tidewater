@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: settle-config,namespace: settle}
+data:
+  DATABASE_URL: postgresql://settle:settle-local-only@postgres:5432/settle
+  REDIS_URL: redis://redis:6379/0
+  MAX_DB_CONNECTIONS_PER_POD: "10"

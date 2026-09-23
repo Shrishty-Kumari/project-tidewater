@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: settle-api,namespace: settle}
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  strategy: {type: RollingUpdate,rollingUpdate: {maxUnavailable: 0,maxSurge: 1}}
+  selector: {matchLabels: {app: settle-api}}
+  template:
+    metadata: {labels: {app: settle-api}}
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+      - name: api
+        image: settle-api:1.9.0
+        imagePullPolicy: IfNotPresent
+        ports: [{containerPort: 8000}]
+        envFrom: [{configMapRef: {name: settle-config}}]
+        env: [{name: APP_VERSION,value: "1.9.0"}]
+        securityContext: {allowPrivilegeEscalation: false,readOnlyRootFilesystem: true,capabilities: {drop: [ALL]}}
+        resources: {requests: {cpu: 100m,memory: 128Mi},limits: {cpu: 500m,memory: 512Mi}}
+        startupProbe: {httpGet: {path: /healthz,port: 8000},periodSeconds: 2,failureThreshold: 30}
+        readinessProbe: {httpGet: {path: /readyz,port: 8000},periodSeconds: 5,timeoutSeconds: 2,failureThreshold: 3}
+        livenessProbe: {httpGet: {path: /healthz,port: 8000},initialDelaySeconds: 20,periodSeconds: 10,timeoutSeconds: 2,failureThreshold: 3}
+        lifecycle: {preStop: {exec: {command: [/bin/sh,-c,sleep 10]}}}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: settle-api,namespace: settle}
+spec: {selector: {app: settle-api},ports: [{name: http,port: 80,targetPort: 8000}]}
