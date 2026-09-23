@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+.PHONY: up build build-bad import import-bad migrate deploy smoke evidence monitoring down
 up:
 	./scripts/up.sh
 build:
